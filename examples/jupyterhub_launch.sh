@@ -1,8 +1,17 @@
 #!/bin/sh
+conffile="$( mktemp ).py"
+if ! [ -f jupyterhub_config.py ]; then 
+   echo file not found
+exit 1
+fi
+cp jupyterhub_config.py  $conffile
 cd /tmp
-#in case spawner is in non default location
-#export PYTHONPATH=$PYTHONPATH:/home/conda/SLXSpawner
-# load anaconda if in non default location
-#module load anaconda/base
-jupyterhub -f ./jupyterhub_config.py
 
+# load anaconda if in non default location
+#module load anaconda/3.7/jupyterhub
+#in case spawner is in non default location
+#export PYTHONPATH=$PYTHONPATH:/home/sean.brisbane/SLXSpawner
+
+
+echo jupyterhub -f $conffile
+jupyterhub -f $conffile

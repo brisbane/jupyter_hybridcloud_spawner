@@ -3,7 +3,7 @@ from batchspawner import SlurmSpawner
 #from oauthenticator.cilogon import CILogonSpawnerMixin
 from traitlets import Unicode
 
-class CometSpawner(SlurmSpawner):
+class HybridCloudSpawner(SlurmSpawner):
 
     req_gres = Unicode('', config=True, \
         help="Additional resources requested"
@@ -11,14 +11,16 @@ class CometSpawner(SlurmSpawner):
 
     def _options_form_default(self):
         appopts=""
-        apps={"geo": "anaconda/3.7/geo", 
-              "default": "anaconda/3.7/singularity",
-               "basesystem": "singularity" }
+        #TODO read these in from cluser config file
+        apps= {  "geo": "anaconda/3.7/geo", 
+                 "default": "anaconda/3.7/singularity",
+                 "basesystem": "singularity"
+              }
         for i in apps.keys():
            appopts+=" <option value=\"{0}\">{1}</option>".format( apps[i], i) #blackrock, vincents, beacon
         """Create a form for the user to choose the configuration for the SLURM job"""
         return """
-        <label for="queue">Comet node type</label>
+        <label for="queue">Node type</label>
         <select name="queue">
           <option value="opencps_1">standard node</option>
           <option value="debug">standard node</option>
