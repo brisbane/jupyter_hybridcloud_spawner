@@ -1,19 +1,22 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys, json, os, tempfile, stat, subprocess
 from optparse import OptionParser
 from shutil import copy
+import errno
 def getopts():
    parser = OptionParser()
    parser.add_option("-m", "--module", dest="appmodulename",
                      help="application module to add")
    parser.add_option("-a", "--appname", dest="appname",
-                    help="application module to add")
+                    help="name for application module to add")
    parser.add_option("-b", "--base", dest="basepath",
                      help="base environment path")
    parser.add_option("-c", "--conffile", dest="conffile",
                      help="Location of app config file",
                      default="/apps/jupyterhub/apps.json")
-
+   parser.add_option("-d", "--modulebaselocation", dest="modulebaselocation",
+                     default="/apps/modules",
+                     help="Location of app config file")
    (options, args) = parser.parse_args()
    return options, args
 if __name__ == '__main__':
@@ -22,26 +25,39 @@ if __name__ == '__main__':
     with open(options.conffile, "r") as conffile:
       apps = json.load(conffile)
     apps[options.appname] = options.appmodulename
-    #fnamet =   tempfile.mkstemp()  
-    fname="/tmp/tter"
-    f=open(fname, "w")
-    f.write("#!/bin/bash -l\nmodule load {0}; python -m ipykernel install --name={1} --prefix={2};\n".format(options.appmodulename, options.appname, options.basepath))
-    f.close()
-    os.chmod(fname, stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE )
-    p = subprocess.Popen(fname, stdout=subprocess.PIPE, shell=True)
-    (output, err) = p.communicate()  
-    p_status = p.wait()
-    print (output, err)
-    os.remove(fname)
+    subenv=options.appname
 
-    subenv="jupyterhub"
-    baseenv="/apps/python/anaconda/el7/python3.7/2019.10"
+#    baseenv="/apps/python/anaconda/el7/python3.7/2019.10"
 
+
+    basenvissubenv=True
+
+    if basenvissubenv:
+       relpath="/../.."
+    else:
+       relpath=''
+    baseenv=options.basepath+relpath
+    
     scripttmp="/tmp/{0}-condainit-{1}".format(os.environ['USER'], subenv)
     moduletmp="/tmp/{0}-module-{1}".format(os.environ['USER'], subenv)
 
-    moduledest="/tmp/apps/modules/conda/{0}".format(subenv)
-    scriptdest="/tmp/{0}/envs/{1}/bin/envscript".format(baseenv, subenv)
+    moduledest="{0}/{1}".format(options.modulebaselocation, options.appmodulename)
+    scriptdest="{0}/envs/{1}/bin/envscript".format(baseenv, subenv)
+
+    try:
+       os.makedirs(os.path.dirname(scriptdest))
+
+    except OSError as e : 
+         if e.errno != errno.EEXIST:
+               raise
+    try:
+       os.makedirs(os.path.dirname(moduledest))
+    except OSError as e : 
+         if e.errno != errno.EEXIST:
+               raise
+       
+    baseenvv=os.path.realpath(baseenv)
+    scriptdest="{0}/envs/{1}/bin/envscript".format(baseenv, subenv)
 
     f=open(scripttmp,"w")
 
@@ -83,9 +99,19 @@ if [info exists env(PYTHONPATH)] {
     stri+='puts stdout "source {0}"\n'.format(scriptdest)
     f.write(stri)
     f.close()
-    os.makedirs(os.path.dirname(scriptdest), exist_ok=True)
-    os.makedirs(os.path.dirname(moduledest), exist_ok=True)
+
     copy(scripttmp, scriptdest)
     copy(moduletmp, moduledest)
 
 
+    #fnamet =   tempfile.mkstemp()  
+    fname="/tmp/conda-tmp-{}".format(os.environ['USER'])
+    f=open(fname, "w")
+    f.write("#!/bin/bash -l\nmodule load {0}; python -m ipykernel install --name={1} --prefix={2};\n".format(options.appmodulename, options.appname, options.basepath))
+    f.close()
+    os.chmod(fname, stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE )
+    p = subprocess.Popen(fname, stdout=subprocess.PIPE, shell=True)
+    (output, err) = p.communicate()  
+    p_status = p.wait()
+    print (output, err)
+    os.remove(fname)

@@ -2,6 +2,7 @@ import os
 from batchspawner import SlurmSpawner
 #from oauthenticator.cilogon import CILogonSpawnerMixin
 from traitlets import Unicode
+import json
 
 class HybridCloudSpawner(SlurmSpawner):
 
@@ -12,10 +13,18 @@ class HybridCloudSpawner(SlurmSpawner):
     def _options_form_default(self):
         appopts=""
         #TODO read these in from cluser config file
-        apps= {  "geo": "anaconda/3.7/geo", 
+        default_apps= {  "geo": "anaconda/3.7/geo", 
                  "default": "anaconda/3.7/singularity",
-                 "basesystem": "singularity"
+                 "basesystem": "singularity",
+                 "tensorflow": "anaconda/3.7/tensorflow"
               }
+        appsconfig = "/apps/jupyterhub/apps.json"
+        try:
+           apps = json.load(f)
+        except: 
+           print ("cannot load apps definition from {}, using default apps".format(appsconfig))
+           apps = default_apps
+        
         for i in apps.keys():
            appopts+=" <option value=\"{0}\">{1}</option>".format( apps[i], i) #blackrock, vincents, beacon
         """Create a form for the user to choose the configuration for the SLURM job"""
@@ -43,6 +52,11 @@ class HybridCloudSpawner(SlurmSpawner):
           <option value="2">2</option>
           <option value="6">6</option>
           <option value="12">12</option>
+        </select>
+        <label for="nodes">Number of nodes</label>
+        <select name="nodes">
+          <option value="1">1</option>
+          <option value="2">2</option>
         </select>
         <label for="runtime">Job duration</label>
         <select name="runtime">
@@ -74,7 +88,14 @@ class HybridCloudSpawner(SlurmSpawner):
         if options['queue'].startswith('gpu'):
             options['other'] += "\n#SBATCH --gres='gpu:{}'".format(formdata.get("gpus")[0])
         options['other'] += "\n#SBATCH --ntasks-per-node={}".format(formdata.get("cores")[0])
+        options['other'] += "\n#SBATCH --nodes={}".format(formdata.get("nodes")[0])
         options['other'] += "\nmodule load {}".format(formdata.get("application")[0])
+       # options['other'] += "\nexport  JUPYTER_DATA_DIR=\"$CONDA_PREFIX/share/jupyter\""
+       # options['other'] += "\nexport JUPYTER_RUNTIME_DIR=\"$(realpath /home/Donegal/s_brisbane/.local/share/jupyter/runtime)\""
+        
+
+#        options['other'] += "\nmodule load {}\n".format(formdata.get("application")[0])
+         
         options['other'] += "\n{}".format(formdata.get("environment")[0])
         print (options)
         return options
