@@ -13,45 +13,39 @@ class HybridCloudSpawner(SlurmSpawner):
     def _options_form_default(self):
         appopts=""
         #TODO read these in from cluser config file
-        default_apps= {  "geo": "anaconda/3.7/geo", 
-                 "default": "anaconda/3.7/singularity",
-                 "basesystem": "singularity",
-                 "tensorflow": "anaconda/3.7/tensorflow"
+        default_apps= { 
+                 "singularity": "singularity",
+                 "tensorflow": "anaconda/tensorflow"
               }
-        appsconfig = "/apps/jupyterhub/apps.json"
+        #print (self.appsconfig)
+        appsconfig = "/etc/jhcspawner/apps.json"
+
         try:
+           f=open(appsconfig,"r")
            apps = json.load(f)
         except: 
            print ("cannot load apps definition from {}, using default apps".format(appsconfig))
            apps = default_apps
         
         for i in apps.keys():
-           appopts+=" <option value=\"{0}\">{1}</option>".format( apps[i], i) #blackrock, vincents, beacon
+           appopts+=" <option value=\"{0}\">{1}</option>".format( apps[i], i) 
         """Create a form for the user to choose the configuration for the SLURM job"""
         return """
         <label for="queue">Node type</label>
         <select name="queue">
-          <option value="opencps_1">standard node</option>
-          <option value="debug">standard node</option>
-          <option value="gpu">full GPU node</option>
-          <option value="gpu-shared">shared GPU node</option>
-          <option value="cloud">Cloud CPU node</option>
-          <option value="cloud-gpu">Cloud GPU node</option>
+          <option value="debug">headnode</option>
+          <option value="azurecpu">Cloud CPU node</option>
+          <option value="azuregpu">Cloud GPU node</option>
         </select>
         <label for="gpus">Number of GPUs (only for shared GPU node)</label>
         <select name="gpus">
           <option value="0">0</option>
           <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
         </select>
-        <label for="cores">Number of cores (only for shared node)</label>
+        <label for="cores">Number of cores (only for cpu nodes)</label>
         <select name="cores">
           <option value="1">1</option>
-          <option value="2">2</option>
           <option value="6">6</option>
-          <option value="12">12</option>
         </select>
         <label for="nodes">Number of nodes</label>
         <select name="nodes">
@@ -71,7 +65,7 @@ class HybridCloudSpawner(SlurmSpawner):
         <select name="application">
           {0}
         </select>
-        <label for="environment">environment settings</label>
+        <label for="environment">Furhter environment settings and preparatory commandsto run</label>
         <textarea name="environment" rows="4" cols="50">
         </textarea>
         """.format(appopts)
@@ -90,12 +84,6 @@ class HybridCloudSpawner(SlurmSpawner):
         options['other'] += "\n#SBATCH --ntasks-per-node={}".format(formdata.get("cores")[0])
         options['other'] += "\n#SBATCH --nodes={}".format(formdata.get("nodes")[0])
         options['other'] += "\nmodule load {}".format(formdata.get("application")[0])
-       # options['other'] += "\nexport  JUPYTER_DATA_DIR=\"$CONDA_PREFIX/share/jupyter\""
-       # options['other'] += "\nexport JUPYTER_RUNTIME_DIR=\"$(realpath /home/Donegal/s_brisbane/.local/share/jupyter/runtime)\""
-        
-
-#        options['other'] += "\nmodule load {}\n".format(formdata.get("application")[0])
-         
         options['other'] += "\n{}".format(formdata.get("environment")[0])
         print (options)
         return options

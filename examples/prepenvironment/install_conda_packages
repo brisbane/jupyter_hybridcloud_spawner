@@ -1,0 +1,31 @@
+
+#!/bin/bash
+usage ()
+{  
+   echo "Usage $0 [installprefix]"
+}
+PREFIX=$HOME/miniconda3
+if [ -n "$1" ] ; then
+   if [ '-h' == "$1" ] || [ '--help' == "$1" ]; then
+      usage
+      exit
+   fi
+   PREFIX=$1
+fi
+
+wget -O /var/tmp/Miniconda3-latest-Linux-x86_64.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+chmod +x /var/tmp/Miniconda3-latest-Linux-x86_64.sh
+/var/tmp/Miniconda3-latest-Linux-x86_64.sh -b -p $PREFIX
+. $PREFIX/bin/activate
+conda env create -f jupyter-conda-env.yaml
+conda activate $PREFIX/envs/jupyterhub
+pip install batchspawner==0.8.1
+
+cd /var/tmp
+git clone https://github.com/brisbane/hpc-container-maker
+cd hpc-container-maker
+pip install .
+cd ..
+git clone https://github.com/brisbane/jupyter_hybridcloud_spawner
+cd jupyter_hybridcloud_spawner
+pip install .

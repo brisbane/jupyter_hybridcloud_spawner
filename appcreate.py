@@ -13,22 +13,29 @@ def getopts():
                      help="base environment path")
    parser.add_option("-c", "--conffile", dest="conffile",
                      help="Location of app config file",
-                     default="/apps/jupyterhub/apps.json")
+                     default="/etc/jhcspawner/apps.json")
    parser.add_option("-d", "--modulebaselocation", dest="modulebaselocation",
-                     default="/apps/modules",
+                     default="/usr/share/modules",
                      help="Location of app config file")
    (options, args) = parser.parse_args()
    return options, args
 if __name__ == '__main__':
     (options, args) = getopts() 
     print (options)
-    with open(options.conffile, "r") as conffile:
-      apps = json.load(conffile)
+    if not os.path.exists(options.conffile):
+       #print ("Failed to locate configuration file %s" % options.conffile)
+       if not os.path.exists( os.path.dirname(options.conffile) ):
+             os.mkdir( os.path.dirname(options.conffile) )
+       apps={}
+    else:
+       try:
+          with open(options.conffile, "r") as conffile:
+             apps = json.load(conffile)
+       except:
+          print ("apps config file exists but might be corrupt")
+          sys.exit(1)
     apps[options.appname] = options.appmodulename
     subenv=options.appname
-
-#    baseenv="/apps/python/anaconda/el7/python3.7/2019.10"
-
 
     basenvissubenv=True
 
@@ -76,7 +83,6 @@ if __name__ == '__main__':
     unset __conda_setup
     # <<< conda initialize <<<
     conda activate --stack {0}/envs/{1}
-    module load slurm
     '''.format(baseenv, subenv)
     f.write(stri)
     f.close()
@@ -107,11 +113,13 @@ if [info exists env(PYTHONPATH)] {
     #fnamet =   tempfile.mkstemp()  
     fname="/tmp/conda-tmp-{}".format(os.environ['USER'])
     f=open(fname, "w")
-    f.write("#!/bin/bash -l\nmodule load {0}; python -m ipykernel install --name={1} --prefix={2};\n".format(options.appmodulename, options.appname, options.basepath))
+    f.write("#!/bin/bash -l\necho 'testing the module {0} is working'\nmodule load {0}; python -m ipykernel install --name={1} --prefix={2};\n".format(options.appmodulename, options.appname, options.basepath))
     f.close()
     os.chmod(fname, stat.S_IEXEC | stat.S_IREAD | stat.S_IWRITE )
     p = subprocess.Popen(fname, stdout=subprocess.PIPE, shell=True)
     (output, err) = p.communicate()  
     p_status = p.wait()
-    print (output, err)
-    os.remove(fname)
+    print (str(output), str(err))
+    #os.remove(fname)
+    print ("Finalizing by adding the application")
+    json.dump(apps,open(options.conffile,"w"))

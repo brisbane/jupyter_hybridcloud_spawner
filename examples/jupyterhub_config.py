@@ -2,10 +2,10 @@ c = get_config()
 c.JupyterHub.allow_named_servers = True
 c.JupyterHub.ip = '0.0.0.0'
 c.JupyterHub.hub_ip = '0.0.0.0'
-c.JupyterHub.spawner_class = "SLXSpawner.HybridCloudSpawner"
-#import batchspawner
+c.JupyterHub.spawner_class = "jhcspawner.SLXSpawner.HybridCloudSpawner"
 #call the full path to this or load a module to ensure it is on the path
 c.SlurmSpawner.cmd = "jupyterhub-singleuser"
+#c.SlurmSpawner.appsconfig = "/etc/jhcspawner/apps.json"
 
 c.SlurmSpawner.batch_script = '''#!/bin/bash
 #SBATCH --job-name="jupyterhub"
