@@ -1,0 +1,13 @@
+[Unit]
+Description=jupyterhub
+
+[Service]
+KillMode=process
+Type=simple
+Environment="PATH=/home/software/miniconda3/envs/jupyterhub/bin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+ExecStart="/home/software/miniconda3/envs/jupyterhub/bin/jupyterhub -f /home/software/jupyter_hybridcloud_spawner/examples/jupyterhub_config.py"
+WorkingDirectory=/tmp
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
