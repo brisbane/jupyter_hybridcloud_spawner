@@ -1,4 +1,6 @@
 #!/bin/sh
+cd $(dirname $0)
+
 conffile="$( mktemp ).py"
 
 if ! [ -f jupyterhub_config.py ]; then 
@@ -8,7 +10,7 @@ fi
 cp jupyterhub_config.py  $conffile
 cd /tmp
 
-conda activate /root/miniconda3/envs/jupyterhub
+module load conda/jupyterhub
 
 # load anaconda if in non default location
 #module load anaconda/3.7/jupyterhub

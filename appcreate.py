@@ -6,17 +6,20 @@ import errno
 def getopts():
    parser = OptionParser()
    parser.add_option("-m", "--module", dest="appmodulename",
-                     help="application module to add")
-   parser.add_option("-a", "--appname", dest="appname",
-                    help="name for application module to add")
+                     help="application module name to use (ignored for singularity)")
+   parser.add_option("-n", "--appname", dest="appname",
+                    help="name for application in jupyter to add")
    parser.add_option("-b", "--base", dest="basepath",
-                     help="base environment path")
+                     help="base environment path for conda or image or singularity")
    parser.add_option("-c", "--conffile", dest="conffile",
                      help="Location of app config file",
                      default="/etc/jhcspawner/apps.json")
    parser.add_option("-d", "--modulebaselocation", dest="modulebaselocation",
                      default="/usr/share/modules",
-                     help="Location of app config file")
+                     help="Location of modulesfiles (ignored for singularity)")
+   parser.add_option("-t", "--type", dest="apptype",
+                     default="conda",
+                     help="Application type [=conda,singularity]")
    (options, args) = parser.parse_args()
    return options, args
 if __name__ == '__main__':
@@ -34,7 +37,8 @@ if __name__ == '__main__':
        except:
           print ("apps config file exists but might be corrupt")
           sys.exit(1)
-    apps[options.appname] = options.appmodulename
+    apps[options.appname] = {'modulename': options.appmodulename, 'apptype': options.apptype }
+  
     subenv=options.appname
 
     basenvissubenv=True

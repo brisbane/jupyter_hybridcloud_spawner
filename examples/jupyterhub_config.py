@@ -15,11 +15,14 @@ c.SlurmSpawner.batch_script = '''#!/bin/bash
 #SBATCH --time={runtime}
 #SBATCH --get-user-env=L
 
+cd $HOME
 ###### Output generated from HybridCloudSpawner
 {other}
+env
+#{cmd}
 ########
-cd $HOME
-{cmd}
+
+
 '''
 
 
