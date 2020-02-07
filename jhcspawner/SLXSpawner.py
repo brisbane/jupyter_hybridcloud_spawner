@@ -163,17 +163,15 @@ cd $HOME
             options['schedoptions'] += "\n#SBATCH --gres=gpu:{}".format(formdata.get("gpus")[0])
         options['schedoptions'] += "\n#SBATCH --ntasks-per-node={}".format(formdata.get("cores")[0])
         options['schedoptions'] += "\n#SBATCH --nodes={}".format(formdata.get("nodes")[0])
+        options['other'] += "\n{}".format(formdata.get("environment")[0])
         if  apptype  != "singularity":
             options['other'] += "\nmodule load {}".format(formdata.get("application")[0])
-            options['other'] += "\n{}".format(formdata.get("environment")[0])
+
         else:
             options['other'] += "\nexport LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
             options['other'] += "\nexport SINGULARITY_LD_LIBRARY_PATH=/usr/local/cuda/lib64"
             options['other'] += "\nexport SINGULARITY_CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
             options['other'] += "\nsingularity exec --nv {} \\".format(apps[app]['environmentname'])
-
-            #options['other'] += "\nsingularity exec --nv env > $HOME/env"
-        print (options)
         self.batch_script = """#!/bin/bash
 #SBATCH --partition={0}
 #SBATCH --time={1}
@@ -186,8 +184,6 @@ cd $HOME
         self.batch_script += "\n. /usr/share/Modules/3.2.10/init/bash"
         self.batch_script += '\n' + self.req_site_environment
         self.batch_script += options['other']
-        self.batch_script += "{cmd}"
+        self.batch_script += "\n{cmd}"
         return options
-#SBATCH --get-user-env=L
-####SBATCH --export=keepvars # not functional
 
