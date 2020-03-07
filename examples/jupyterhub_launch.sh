@@ -1,5 +1,6 @@
 #!/bin/sh
-cd $(dirname $0)
+dr=$(readlink $(dirname $0) )
+if [ -n "$dr" ]; then cd $dr; fi
 RUNDIR=/home/software/jhubcache
 name=$RUNDIR/"$( mktemp )"
 conffile=${name}.py
