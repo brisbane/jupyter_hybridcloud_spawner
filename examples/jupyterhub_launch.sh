@@ -1,5 +1,5 @@
 #!/bin/sh
-dr=$(readlink $(dirname $0) )
+dr="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 if [ -n "$dr" ]; then cd $dr; fi
 RUNDIR=/home/software/jhubcache
 name=$RUNDIR/"$( mktemp )"
@@ -10,15 +10,15 @@ chmod 1777 $RUNDIR
 
 
 
+echo $dr
 
 
-
-if ! [ -f jupyterhub_config.py ]; then 
+if ! [ -f $dr/jupyterhub_config.py ]; then 
    echo file not found
 exit 1
 fi
-echo cp jupyterhub_config.py  $conffile
-cp jupyterhub_config.py  $conffile
+echo cp $dr/jupyterhub_config.py  $conffile
+cp $dr/jupyterhub_config.py  $conffile
 
 
 . /home/software/miniconda3/envs/jupyterhub//../../envs/jupyterhub/bin/envscript

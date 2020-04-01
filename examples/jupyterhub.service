@@ -2,10 +2,10 @@
 Description=jupyterhub
 
 [Service]
-KillMode=process
+KillMode=control-group
 Type=simple
 Environment="PATH=/home/software/miniconda3/envs/jupyterhub/bin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
-ExecStart="/home/software/miniconda3/envs/jupyterhub/bin/jupyterhub -f /home/software/jupyter_hybridcloud_spawner/examples/jupyterhub_config.py"
+ExecStart="/root/jupyter_hybridcloud_spawner/examples/jupyterhub_launch.sh"
 WorkingDirectory=/tmp
 Restart=always
 
