@@ -4,7 +4,7 @@ if [ -n "$dr" ]; then cd $dr; fi
 RUNDIR=/home/software/jhubcache
 name=$RUNDIR/"$( mktemp )"
 conffile=${name}.py
-RUNDIR=$name
+export RUNDIR=$name
 mkdir -p  $RUNDIR
 chmod 1777 $RUNDIR
 

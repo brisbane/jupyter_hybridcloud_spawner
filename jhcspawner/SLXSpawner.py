@@ -3,6 +3,7 @@ from batchspawner import SlurmSpawner
 #from oauthenticator.cilogon import CILogonSpawnerMixin
 from traitlets import Unicode
 import json
+import tempfile, stat
 
 class HybridCloudSpawner(SlurmSpawner):
 
@@ -39,10 +40,9 @@ cd $HOME
 
         #TODO read these in from cluser config file
         default_apps= {
-                 "jupyterhub":  { 'environmentname': "conda/jupyterhub", 'apptype': "conda" },
-                 "singularity-tensorflow": { 'environmentname': "/home/software/containers/jupyter-notebook-suse.simg", 'apptype': "singularity"},
-                 "tensorflow":  { 'environmentname': "conda/tensorflow", 'apptype': "conda" },
-                 "tensorflow-gpu":  { 'environmentname': "conda/tensorflow-gpu", 'apptype': "conda" }
+                 "jupyterhub":  { 'name': 'jupyterhub', 'environmentname': "conda/jupyterhub", 'apptype': "conda" },
+                 "singularity-tensorflow": { 'name': 'singularity-tensorflow', 'environmentname': "/home/software/containers/jupyter-notebook-suse.simg", 'apptype': "singularity"},
+                 "tensorflow-gpu":  { 'name': 'tensorflow-gpu','environmentname': "conda/tensorflow-gpu", 'apptype': "conda" }
               }
         #print (self.appsconfig)
         appsconfig=self.appsconfig
@@ -59,7 +59,7 @@ cd $HOME
         appopts=""
         apps = self.loadapps()
         for i in apps.keys():
-           appopts+=" <option value=\"{0}\">{1}</option>".format( apps[i]['environmentname'], i) 
+           appopts+=" <option value=\"{0}\">{1}</option>".format( apps[i]['name'], i) 
         """Create a form for the user to choose the configuration for the SLURM job"""
         return """
         <br/>
@@ -135,6 +135,8 @@ cd $HOME
 
     def options_from_form(self, formdata):
         """Parse the form and add options to the SLURM job script"""
+        container_envscript = "/usr/local/bin/entrypoint.sh"
+        container_has_envscript = True 
         apps = self.loadapps()
         options = {}
         options['queue'] = formdata.get('queue', [''])[0].strip()
@@ -150,7 +152,7 @@ cd $HOME
         application = formdata.get("application")[0]
         for app in apps:
             print ( app )
-            if apps[app]['environmentname'] == application: 
+            if apps[app]['name'] == application: 
                 apptype = apps[app]['apptype']  
                 print (apptype + " found")  
                 break
@@ -164,14 +166,52 @@ cd $HOME
         options['schedoptions'] += "\n#SBATCH --ntasks-per-node={}".format(formdata.get("cores")[0])
         options['schedoptions'] += "\n#SBATCH --nodes={}".format(formdata.get("nodes")[0])
         options['other'] += "\n{}".format(formdata.get("environment")[0])
+       
         if  apptype  != "singularity":
             options['other'] += "\nmodule load {}".format(formdata.get("application")[0])
 
         else:
-            options['other'] += "\nexport LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
-            options['other'] += "\nexport SINGULARITY_LD_LIBRARY_PATH=/usr/local/cuda/lib64"
-            options['other'] += "\nexport SINGULARITY_CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
-            options['other'] += "\nsingularity exec --nv {} \\".format(apps[app]['environmentname'])
+          #  options['other'] += "\nexport LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
+          #  options['other'] += "\nexport SINGULARITY_LD_LIBRARY_PATH=/usr/local/cuda/lib64"
+          #  options['other'] += "\nexport SINGULARITY_CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
+          
+          #check if app overrides entrypoint script
+          print ('aaa', apps, app, apps[app])
+          print ('container_external_envprep' in apps[app]  )
+          print (apps[app]['container_external_envprep'])
+          if 'container_external_envprep' in apps[app]  and apps[app]['container_external_envprep'] != '':
+                   print ("here")
+                   #singenv= "__conda_setup=\"$('/usr/local/anaconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)\" && eval \"$__conda_setup\" && \\"
+                   container_has_envscript = False
+                   singenv=""
+                   #readall lines of file into new tmp file that isvisible to container
+                   try:
+                      singenv="\n".join( open(apps[app]['container_external_envprep'],"r").readlines())
+                      singenv+='$@\n'     
+                   except:
+                       print ("Failed to read in script" + apps[app]['container_external_envprep'])
+          if True == container_has_envscript :
+               print ("here2")
+               options['other'] += "\nsingularity exec --nv {0} {1} \\".format(apps[app]['environmentname'], container_envscript)
+          else:
+               print ("here3")
+               #TODO document rundir requirement
+               sharedtmpdir=os.path.join(os.getenv("RUNDIR"),".jhubtmp")
+               try: 
+                  os.mkdir(sharedtmpdir)
+               except OSError as error: 
+                  unless: error.errno == 17
+                  print(error)   
+               
+               tmpfile = tempfile.NamedTemporaryFile(mode='w+b', delete=False, dir=sharedtmpdir)
+          
+               #option 1 )write the conda setup to a tempfile
+               options['other'] += "\nsingularity exec --nv {0} {1} \\".format(apps[app]['environmentname'], tmpfile.name)
+           
+               tmpfile.write(bytes(singenv, 'utf-8') +b'\n$@')
+               tmpfile.close()
+               os.chmod(tmpfile.name, stat.S_IROTH|stat.S_IXOTH )
+
         self.batch_script = """#!/bin/bash
 #SBATCH --partition={0}
 #SBATCH --time={1}

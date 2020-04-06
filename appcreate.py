@@ -3,6 +3,15 @@ import sys, json, os, tempfile, stat, subprocess
 from optparse import OptionParser
 from shutil import copy
 import errno
+
+#example to create an app from the conda environment /home/software/miniconda3/envs/tensorflow2.1/
+#appcreate  -e conda/tensorflow-2.1 -n tensorflow2.1 -b /home/software/miniconda3/envs/tensorflow2.1/ -t conda -d /home/software/modules/
+#example to create a singluarity application - the sinularity app needs the default entrypoint script set up to run jupyterhub-singleuser
+#appcreate  -e /home/software/containers/tensorflow-leap.sif  -n tensorflow2.1-singularity  -t singularity
+#example singularity where you want to run a setup script first, inside the container, to configure the environment - the setup script should be acessible on a nfs share
+#appcreate  -e /home/software/containers/tensorflow-leap.sif  -n tensorflow2.1-singularity  -t singularity -b /home/software/containers/tensorflow-leap-entry.sh
+
+
 def getopts():
    parser = OptionParser()
    parser.add_option("-e", "--environment", dest="environmentname",
@@ -10,7 +19,7 @@ def getopts():
    parser.add_option("-n", "--appname", dest="appname",
                     help="name for application in jupyter to add")
    parser.add_option("-b", "--base", dest="basepath",
-                     help="base environment path for (ignored for singularity)")
+                     help="base environment path for module based apps, or environment preps script (on host system) for singularity)")
    parser.add_option("-c", "--conffile", dest="conffile",
                      help="Location of app config file",
                      default="/etc/jhcspawner/apps.json")
@@ -37,12 +46,14 @@ if __name__ == '__main__':
        except:
           print ("apps config file exists but might be corrupt")
           sys.exit(1)
-    apps[options.appname] = {'environmentname': options.environmentname, 'apptype': options.apptype }
+    apps[options.appname] = {'name': options.appname, 'environmentname': options.environmentname, 'apptype': options.apptype }
   
 
 
     subenv=options.appname
-
+    if 'singularity' == options.apptype:
+        if options.basepath and options.basepath != "":
+           apps[options.appname]['container_external_envprep']  = options.basepath
     if 'conda' == options.apptype:
       basenvissubenv=True
 
