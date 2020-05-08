@@ -11,5 +11,6 @@ c.Spawner.debug = True
 c.HybridCloudSpawner.start_timeout = 7200
 c.HybridCloudSpawner.startup_poll_interval = 5.0
 c.HybridCloudSpawner.http_timeout = 7200
-c.JupyterHub.logo_file = "/home/username/securelinx.png"
+# example - uncomment and change to add your own branding logo
+#c.JupyterHub.logo_file = "/home/username/securelinx.png"
 
