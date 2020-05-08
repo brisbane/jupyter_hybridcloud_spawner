@@ -155,8 +155,9 @@ cd $HOME
             if apps[app]['name'] == application: 
                 apptype = apps[app]['apptype']  
                 print (apptype + " found")  
+                environmentname = apps[app]['environmentname']
                 break
- 
+         
         account = formdata.get('account', [''])[0].strip()
         if account:
             options['schedoptions'] += "#scheduler"
@@ -168,7 +169,11 @@ cd $HOME
         options['other'] += "\n{}".format(formdata.get("environment")[0])
        
         if  apptype  != "singularity":
-            options['other'] += "\nmodule load {}".format(formdata.get("application")[0])
+            #removes confusion now that environement name is definately a module
+            #not the same as environment, which is the extra env settings
+            modulename = environmentname
+            options['other'] += "\nmodule load {}".format(environmentname)
+
 
         else:
           #  options['other'] += "\nexport LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
@@ -176,11 +181,9 @@ cd $HOME
           #  options['other'] += "\nexport SINGULARITY_CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
           
           #check if app overrides entrypoint script
-          print ('aaa', apps, app, apps[app])
-          print ('container_external_envprep' in apps[app]  )
-          print (apps[app]['container_external_envprep'])
+          #print ('aaa', apps, app, apps[app])
+          #print ('container_external_envprep' in apps[app]  )
           if 'container_external_envprep' in apps[app]  and apps[app]['container_external_envprep'] != '':
-                   print ("here")
                    #singenv= "__conda_setup=\"$('/usr/local/anaconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)\" && eval \"$__conda_setup\" && \\"
                    container_has_envscript = False
                    singenv=""
@@ -191,10 +194,8 @@ cd $HOME
                    except:
                        print ("Failed to read in script" + apps[app]['container_external_envprep'])
           if True == container_has_envscript :
-               print ("here2")
                options['other'] += "\nsingularity exec --nv {0} {1} \\".format(apps[app]['environmentname'], container_envscript)
           else:
-               print ("here3")
                #TODO document rundir requirement
                sharedtmpdir=os.path.join(os.getenv("RUNDIR"),".jhubtmp")
                try: 
